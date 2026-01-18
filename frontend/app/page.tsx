@@ -1,75 +1,135 @@
-import Image from "next/image";
+"use client";
+
 import { useState } from "react";
+
+interface Message {
+  id: number;
+  text: string;
+  sender: "user" | "other";
+  timestamp: Date;
+}
 
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
-  // Set last key as null
-  const [lastKey, setLastKey] = useState<string | null>(null);
-  const [keyHistory, setKeyHistory] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [typing, setTyping] = useState(false);
 
-  // Handle key down event
+  // Handle input change - tracks typing when there are characters
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+
+    if (newValue.length > 0) {
+      setTyping(true);
+      console.log("Typing...");
+    } else {
+      setTyping(false);
+      console.log("Not typing...");
+    }
+  };
+
+  // Handle keyboard events (like Enter to send)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const key = e.key;
-    setLastKey(key);
-    setKeyHistory([...keyHistory, key]);
+    if (e.key === "Enter" && inputValue.trim()) {
+      handleSendMessage();
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (!inputValue.trim()) return;
+
+    const newMessage: Message = {
+      id: messages.length + 1,
+      text: inputValue,
+      sender: "user",
+      timestamp: new Date(),
+    };
+
+    setMessages([...messages, newMessage]);
+    setInputValue("");
+    setTyping(false); // Reset typing state when message is sent
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-900">
+      <main className="flex flex-col w-full max-w-4xl mx-auto h-screen bg-white dark:bg-zinc-800">
+        {/* Chat Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+              U
+            </div>
+            <div>
+              <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">Chat</h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Online</p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                  message.sender === "user"
+                    ? "bg-blue-500 text-white"
+                    : "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                }`}
+              >
+                <p className="text-sm">{message.text}</p>
+                <p
+                  className={`text-xs mt-1 ${
+                    message.sender === "user"
+                      ? "text-blue-100"
+                      : "text-zinc-500 dark:text-zinc-400"
+                  }`}
+                >
+                  {message.timestamp.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Message Input Area */}
+        <div className="border-t border-zinc-200 dark:border-zinc-700 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Write something..."
+              className="flex-1 px-4 py-3 rounded-full border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim()}
+              className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </main>
     </div>
