@@ -16,3 +16,4 @@ while not done:
     else:
         print(f'Client: {msg}')
         client.send(input("Your Message: ").encode('utf-8'))
+        print("Server is typing")
