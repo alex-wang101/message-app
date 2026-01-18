@@ -1,6 +1,18 @@
 import Image from "next/image";
+import { useState } from "react";
 
 export default function Home() {
+  const [inputValue, setInputValue] = useState("");
+  // Set last key as null
+  const [lastKey, setLastKey] = useState<string | null>(null);
+  const [keyHistory, setKeyHistory] = useState<string[]>([]);
+
+  // Handle key down event
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const key = e.key;
+    setLastKey(key);
+    setKeyHistory([...keyHistory, key]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
