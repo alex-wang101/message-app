@@ -11,3 +11,12 @@ Backend:
 - Message storage
 - Read receipt tracking
 - Typing indiactor 
+
+To Do:
+- Sync backend and frontend
+
+Features:
+- Typing indicator
+- Read receipts
+- Send/edit/search messages
+
