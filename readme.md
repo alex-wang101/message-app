@@ -1,4 +1,4 @@
-**messaging app with nextjs and websocket**
+<h1>dms recreate</h1>
 
 frontend features with nextjs:
 - websocket client connection
@@ -11,12 +11,3 @@ Backend:
 - Message storage
 - Read receipt tracking
 - Typing indiactor 
-
-To Do:
-- Sync backend and frontend
-
-Features:
-- Typing indicator
-- Read receipts
-- Send/edit/search messages
-
