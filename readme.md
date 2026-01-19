@@ -1,4 +1,4 @@
-**messaging app with nextjs and websocket**
+<h1>dms recreate</h1>
 
 frontend features with nextjs:
 - websocket client connection
