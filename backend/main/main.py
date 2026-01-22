@@ -4,7 +4,8 @@ from typing import List, Dict
 from datetime import datetime
 from pydantic import BaseModel
 import json
-
+import pygame
+import os
 """
 Backend for running the websocket server and creating api endpoints
 """
@@ -12,7 +13,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,6 +38,9 @@ class ConnectionManager:
         message_json = json.dumps(message, default=str)
         for connection in self.active_connections:
             await connection.send_text(message_json)
+    
+    def get_connection_count(self) -> int:
+        return len(self.active_connections)
 
 # Message model
 class Message(BaseModel):
@@ -87,6 +91,21 @@ async def health_check():
 @app.websocket("/api/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
+    
+    # Send initial count to the newly connected user
+    await websocket.send_text(json.dumps({
+        "type": "connection_count",
+        "count": manager.get_connection_count(),
+        "timestamp": datetime.now().isoformat()
+    }))
+    
+    # Broadcast user joined with updated count
+    await manager.broadcast({
+        "type": "user_joined",
+        "count": manager.get_connection_count(),
+        "timestamp": datetime.now().isoformat()
+    })
+    
     try:
         while True:
             payload = await websocket.receive_json()
@@ -111,9 +130,21 @@ async def websocket_endpoint(websocket: WebSocket):
                     "sender": payload.get("sender"),
                     "timestamp": datetime.now().isoformat()
                 })
+            elif payload["type"] == "play_sound":
+                await manager.broadcast({
+                    "type": "play_sound",
+                    "sender": payload.get("sender"),
+                    "timestamp": datetime.now().isoformat()
+                })
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast({
+            "type": "not_typing",
+            "sender": websocket.client.host,
+            "timestamp": datetime.now().isoformat()
+        })
+        await manager.broadcast({
             "type": "user_left",
-            "sender": websocket.client.host
+            "count": manager.get_connection_count(),
+            "timestamp": datetime.now().isoformat()
         })

@@ -24,4 +24,5 @@ To Do:
 - Message search (some vector search engine)
 - AI integration for chat summarization
 
-fuh my chud life <3
+Note:
+I got off track so i made a button that braodcasts cardi sound to all connected clients when clicked. 

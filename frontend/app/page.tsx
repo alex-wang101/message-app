@@ -1,4 +1,6 @@
 "use client";
+const clickSound = "/cardi/fwah.mp3";
+
 
 import { useRef, useState, useEffect} from "react";
 
@@ -7,6 +9,7 @@ interface Message {
   text: string;
   sender: string;
   timestamp: Date;
+  isSystem?: boolean;
 }
 
 export default function Home() {
@@ -16,6 +19,7 @@ export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [connectedCount, setConnectedCount] = useState(1);
 
   useEffect(() => {
     console.log("[WebSocket] Connecting... userID:", userID);
@@ -37,22 +41,51 @@ export default function Home() {
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log("[WebSocket] Received:", data);
       
       if (data.type === "message" && data.message) {
         const messageWithDate = {
           ...data.message,
           timestamp: new Date(data.message.timestamp)
         };
-        console.log("[Message] Adding message:", messageWithDate);
         setMessages((prev) => [...prev, messageWithDate]);
         setOtherUserTyping(false);
       } else if (data.type === "typing" && data.sender !== userID) {
-        console.log("[Typing] Other user typing:", data.sender);
         setOtherUserTyping(true);
       } else if (data.type === "not_typing" && data.sender !== userID) {
-        console.log("[Typing] Other user stopped typing:", data.sender);
         setOtherUserTyping(false);
+      } else if (data.type === "user_joined") {
+        if (data.count !== undefined) {
+          setConnectedCount(data.count);
+        }
+        const systemMessage: Message = {
+          id: Date.now(),
+          text: "A user joined the chat",
+          sender: "system",
+          timestamp: new Date(data.timestamp),
+          isSystem: true
+        };
+        setMessages((prev) => [...prev, systemMessage]);
+      } else if (data.type === "user_left") {
+        if (data.count !== undefined) {
+          setConnectedCount(data.count);
+        }
+        const systemMessage: Message = {
+          id: Date.now(),
+          text: "A user left the chat",
+          sender: "system",
+          timestamp: new Date(data.timestamp),
+          isSystem: true
+        };
+        setMessages((prev) => [...prev, systemMessage]);
+        setOtherUserTyping(false);
+
+      } else if (data.type === "play_sound") {
+        const audio = new Audio("/cardi/fwah.mp3");
+        audio.play().catch(err => console.error("[Sound] Error playing:", err));
+      } else if (data.type === "connection_count") {
+        if (data.count !== undefined) {
+          setConnectedCount(data.count);
+        }
       }
     };
 
@@ -111,46 +144,68 @@ export default function Home() {
 
     setInputValue("");
   };
+  const playButtonSound = () => {
+    if (webRef.current?.readyState === WebSocket.OPEN) {
+      console.log("[Sound] Sending play_sound request");
+      webRef.current.send(JSON.stringify({ 
+        type: "play_sound",
+        sender: userID 
+      }));
+    } else {
+      console.error("[Sound] WebSocket not connected");
+    }
+  }
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-900">
-      <main className="flex flex-col w-full max-w-4xl mx-auto h-screen bg-white dark:bg-zinc-800">
-        {/* Chat Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+    <div className="flex min-h-screen bg-black">
+      <main className="flex flex-col w-full max-w-4xl mx-auto h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b-2 border-red-600">
+          <div>
+            <h1 className="text-3xl text-red-600 uppercase">VAMP CHAT</h1>
+            <p className="text-xs text-white/50 uppercase tracking-[0.3em]">whole lotta red</p>
+          </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-              U
+            <div className="text-white text-sm uppercase tracking-wider">
+              {connectedCount} {connectedCount === 1 ? "vamp" : "vamps"}
             </div>
-            <div>
-              <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">Chat</h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Online</p>
-            </div>
+            <button
+              onClick={playButtonSound}
+              className="w-12 h-12 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center justify-center text-xl"
+            >
+               😈
+            </button>
           </div>
         </div>
-
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
           {messages.map((message) => {
             const isMe = message.sender === userID;
+            const isSystem = message.isSystem;
+            
+            if (isSystem) {
+              return (
+                <div key={message.id} className="flex justify-center">
+                  <p className="text-xs text-white/30 uppercase tracking-widest">
+                    -- {message.text} --
+                  </p>
+                </div>
+              );
+            }
+            
             return (
               <div
                 key={message.id}
                 className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                  className={`max-w-[75%] px-4 py-3 ${
                     isMe
-                      ? "bg-blue-500 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                      ? "bg-red-600 text-white"
+                      : "bg-white/10 text-white border border-white/20"
                   }`}
                 >
-                  <p className="text-sm">{message.text}</p>
-                  <p
-                    className={`text-xs mt-1 ${
-                      isMe
-                        ? "text-blue-100"
-                        : "text-zinc-500 dark:text-zinc-400"
-                    }`}
-                  >
+                  <p className="text-sm lowercase">{message.text}</p>
+                  <p className="text-[10px] mt-2 opacity-50 uppercase">
                     {message.timestamp.toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -162,43 +217,32 @@ export default function Home() {
           })}
           {otherUserTyping && (
             <div className="flex justify-start">
-              <div className="bg-zinc-100 dark:bg-zinc-700 rounded-2xl px-4 py-2">
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">typing...</p>
+              <div className="bg-white/10 border border-white/20 px-4 py-3">
+                <p className="text-sm text-red-600">
+                  <span className="blink">_</span>
+                </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Message Input Area */}
-        <div className="border-t border-zinc-200 dark:border-zinc-700 px-6 py-4">
-          <div className="flex items-center gap-3">
+        {/* Input */}
+        <div className="border-t-2 border-red-600 px-6 py-5">
+          <div className="flex items-center gap-4">
             <input
               type="text"
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Write something..."
-              className="flex-1 px-4 py-3 rounded-full border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              placeholder="..."
+              className="flex-1 px-4 py-3 bg-transparent border-2 border-white/20 text-white placeholder-white/30 focus:outline-none focus:border-red-600 lowercase"
             />
             <button
               onClick={handleSendMessage}
               disabled={!inputValue.trim()}
-              className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 bg-red-600 text-white uppercase text-sm hover:bg-red-700 disabled:opacity-20 disabled:cursor-not-allowed"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                />
-              </svg>
+              SEND
             </button>
           </div>
         </div>
