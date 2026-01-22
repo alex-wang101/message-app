@@ -6,13 +6,13 @@ from pydantic import BaseModel
 import json
 
 """
-Backeend for running the websocket server and creating api endpoints
+Backend for running the websocket server and creating api endpoints
 """
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,15 +98,19 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
             elif payload["type"] == "message":
                 # Broadcast ephemeral message without storing
-                # Only POST /api/messages stores to database
                 await manager.broadcast({
                     "type": "message",
                     "text": payload.get("text"),
                     "sender": payload.get("sender"),
                     "timestamp": datetime.now().isoformat(),
-                    "ephemeral": True  # Flag to indicate this wasn't stored
+                    "ephemeral": True  
                 })
-    
+            elif payload["type"] == "not_typing":
+                await manager.broadcast({
+                    "type": "not_typing",
+                    "sender": payload.get("sender"),
+                    "timestamp": datetime.now().isoformat()
+                })
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast({
