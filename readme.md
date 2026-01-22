@@ -11,3 +11,17 @@ Backend:
 - Message storage
 - Read receipt tracking
 - Typing indiactor 
+
+
+Update:
+- The backend now supports multiple users sending messages to eachother given frontend clients. 
+
+To Do: 
+- Store messages in a database, include / commands to perform edits to the database
+- user authentication
+- better UI 
+- Message editing
+- Message search (some vector search engine)
+- AI integration for chat summarization
+
+fuh my chud life <3
